@@ -5,29 +5,8 @@ use std::convert::Infallible;
 use std::net::SocketAddr;
 
 async fn handle_request(request: Request<Body>) -> Result<Response<Body>, Infallible> {
-    // let mut response = Response::new(Body::empty());
-
-    // match (request.method(), request.uri().path()) {
-    //     (&Method::GET, "/") => {
-    //         *response.body_mut() = Body::from("Try posting data to /echo");
-    //     }
-    //
-    //     (&Method::POST, "/echo") => *response.body_mut() = request.into_body(),
-    //
-    //     _ => {
-    //         *response.status_mut() = StatusCode::NOT_FOUND;
-    //     }
-    // }
-
-    // println!("{request:?}");
-    // if let Some(host) = request.headers().get("host") {
-    //     let client = Client::new();
-    //     client.request(request).await.unwrap();
-    // } else {
-    //     eprintln!("Host not found?");
-    // }
-
     println!("{request:?}");
+
     let client = Client::new();
     let response = match client.request(request).await {
         Ok(resp) => resp,
