@@ -1,13 +1,16 @@
 use anyhow::Error;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Client, Request, Response, Server, StatusCode};
+use hyper_tls::HttpsConnector;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 
 async fn handle_request(request: Request<Body>) -> Result<Response<Body>, Infallible> {
     println!("{request:?}");
 
-    let client = Client::new();
+    let https = HttpsConnector::new();
+
+    let client = Client::builder().build(https);
     let response = match client.request(request).await {
         Ok(resp) => resp,
         Err(err) => {
