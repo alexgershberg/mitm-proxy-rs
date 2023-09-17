@@ -1,7 +1,7 @@
 use anyhow::{Error};
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Client, Request, Response, Server, StatusCode};
-use hyper_rustls::HttpsConnectorBuilder;
+use hyper_rustls::{ConfigBuilderExt, HttpsConnectorBuilder};
 use rustls::{Certificate, ClientConfig, PrivateKey, RootCertStore};
 use std::convert::Infallible;
 use std::fs;
@@ -30,26 +30,25 @@ fn load_private_key_from_file(path: &str) -> Result<PrivateKey, Box<dyn std::err
         _ => Err(format!("More than one PKCS8-encoded private key found in {path}").into()),
     }
 }
-async fn handle_request(request: Request<Body>) -> Result<Response<Body>, Infallible> {
+async fn handle_request(mut request: Request<Body>) -> Result<Response<Body>, Infallible> {
     println!("{request:?}");
+    let body = hyper::body::to_bytes(request.body_mut()).await.expect("Can't parse body");
+    println!("Body: {body:?}");
 
     let cer_file = fs::File::open("certs/mitm-proxy-rs.cer").unwrap();
     let mut cer_rd = BufReader::new(cer_file);
     let certs = rustls_pemfile::certs(&mut cer_rd).map_err(|e| eprintln!("Failed to read certificate: {e}")).unwrap();
 
-
-
     let cer = load_certificates_from_file("certs/mitm-proxy-rs.cer").unwrap();
     let pkey = load_private_key_from_file("certs/mitm-proxy-rs.key").unwrap();
 
-
     // heavy "inspiration" taken from here: https://github.com/rustls/hyper-rustls/blob/main/examples/client.rs
-    let mut roots = RootCertStore::empty();
-    roots.add_parsable_certificates(&certs);
+    // let mut roots = RootCertStore::empty();
+    // roots.add_parsable_certificates(&certs);
 
     let tls = ClientConfig::builder()
         .with_safe_defaults()
-        .with_root_certificates(roots)
+        .with_native_roots()
         .with_client_auth_cert(cer, pkey)
         .unwrap();
 
@@ -60,7 +59,7 @@ async fn handle_request(request: Request<Body>) -> Result<Response<Body>, Infall
         .build();
 
     let client = Client::builder().build(https);
-    let response = match client.request(request).await {
+    let mut response = match client.request(request).await {
         Ok(resp) => resp,
         Err(err) => {
             eprintln!("Can't handle this one (YET!) | Error: {err}");
@@ -70,6 +69,9 @@ async fn handle_request(request: Request<Body>) -> Result<Response<Body>, Infall
                 .unwrap()
         }
     };
+
+    let body = hyper::body::to_bytes(response.body_mut()).await.expect("Can't parse body");
+    println!("Response Body: {body:?}");
 
     Ok(response)
 }
