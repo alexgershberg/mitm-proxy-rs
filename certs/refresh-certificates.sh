@@ -8,7 +8,7 @@ set -xe
 
 openssl req -nodes \
           -x509 \
-          -days 3650 \
+          -days 100 \
           -newkey rsa:4096 \
           -keyout ca.key \
           -out ca.cert \
@@ -42,7 +42,7 @@ openssl x509 -req \
             -CA ca.cert \
             -CAkey ca.key \
             -sha256 \
-            -days 3650 \
+            -days 100 \
             -set_serial 123 \
             -extensions v3_inter -extfile openssl.cnf
 
@@ -52,7 +52,7 @@ openssl x509 -req \
             -CA inter.cert \
             -CAkey inter.key \
             -sha256 \
-            -days 2000 \
+            -days 100 \
             -set_serial 456 \
             -extensions v3_end -extfile openssl.cnf
 
