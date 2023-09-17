@@ -1,6 +1,6 @@
 use anyhow::Error;
 use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Client, Request, Response, Server, StatusCode};
+use hyper::{Body, Client, Method, Request, Response, Server, StatusCode};
 use hyper_rustls::{ConfigBuilderExt, HttpsConnectorBuilder};
 use lazy_static::lazy_static;
 use rustls::{Certificate, ClientConfig, PrivateKey};
@@ -33,12 +33,21 @@ fn load_private_key_from_file(path: &str) -> Result<PrivateKey, Box<dyn std::err
     }
 }
 
-async fn handle_request(mut request: Request<Body>) -> Result<Response<Body>, Infallible> {
+async fn handle_request(request: Request<Body>) -> Result<Response<Body>, Infallible> {
     let mut count_locked = counter.lock().await;
     *count_locked += 1;
 
     println!("Counter: {count_locked}");
     println!("{request:?}");
+
+    // TODO, need to handle connect method
+    // Some useful documentation on how mitmproxy does it: https://github.com/mitmproxy/mitmproxy/blob/3b68e82db4c22f16001b0411cdfea2c1e0124eb7/docs/src/content/concepts-howmitmproxyworks.md
+    if request.method() == Method::CONNECT {
+        return Ok(Response::builder()
+            .status(StatusCode::OK)
+            .body(Body::empty())
+            .unwrap());
+    }
 
     let cer = load_certificates_from_file("certs/mitm-proxy-rs.cer").unwrap();
     let pkey = load_private_key_from_file("certs/mitm-proxy-rs.key").unwrap();
